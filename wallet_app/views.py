@@ -5,7 +5,8 @@ from rest_framework.views import APIView
 from .models import Wallet, Transactions
 from .serializers import InitializeWalletSerializer, TransactionSerializer, WalletSerializer,VirtualMoneySerializer
 from .services import initialize_user_and_customer, enable_wallet, disable_wallet,add_money,withdraw_money
-
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 class InitializeWalletView(APIView):
     authentication_classes = [] #disables authentication
@@ -23,13 +24,18 @@ class InitializeWalletView(APIView):
 
 
 class WalletStatusChangeView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         user = request.user
-        customer = user.customer
-        wallet = enable_wallet(customer)
-        serializer = WalletSerializer(wallet)
-        return success_response(serializer.data)
+        if user.is_authenticated:
+         customer = user.customer
+         wallet = enable_wallet(customer)
+         serializer = WalletSerializer(wallet)
+         return success_response(serializer.data)
+        else:
+            return Response({"error":"User is not authenticated"})
 
     def patch(self, request, *args, **kwargs):
         user = request.user
@@ -60,6 +66,9 @@ class Transactions(APIView):
 
 class AddMoney(APIView):
     serializer_class = VirtualMoneySerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
 
     def post(self, request):
 
@@ -67,15 +76,21 @@ class AddMoney(APIView):
         print(request.data)
         serializer.is_valid(raise_exception=True)
         user = request.user
-        customer = user.customer
-        data=request.data
-        wallet = add_money(customer,data)
-        serializer = WalletSerializer(wallet)
-        return success_response(serializer.data)
+        if user.is_authenticated:
+         customer = user.customer
+         data=request.data
+         wallet = add_money(customer,data)
+         serializer = WalletSerializer(wallet)
+         return success_response(serializer.data)
+        else:
+            return Response({"error":"User is not authenticated"})
+
         
 
 class Usemoney(APIView):
-    serializer_class = VirtualMoneySerializer
+    serializer_class = VirtualMoneySerializer 
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
 
@@ -89,6 +104,7 @@ class Usemoney(APIView):
         serializer = WalletSerializer(wallet)
         return success_response(serializer.data)
         
+
 
 
 

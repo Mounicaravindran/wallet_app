@@ -1,8 +1,9 @@
-from .models import Customer, Wallet
+from .models import Customer, Wallet,Transactions
 from django.utils import timezone
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from django.db import transaction
+from .constants import WalletTransactionType
 
 
 def initialize_user_and_customer(customer_xid):
@@ -67,7 +68,40 @@ def withdraw_money(customer,data):
             raise Exception("Wallet is disabled,please enable wallet to add money")
         if wallet.balance< data["amount"]:
             return("Insufficient balance")
+        
+        amount = data['amount']
         wallet.balance-=data["amount"]
+
+
+        Transactions.objects.create(
+        wallet=wallet,
+        transaction_type=WalletTransactionType.WITHDRAWAL,
+        amount=amount
+    )
+    
         wallet.save()
     return wallet
+
+'''def view_transaction(customer):
+    with transaction.atomic():
+        wallet = Wallet.objects.get_or_none(owned_by=customer)
+        if not wallet:
+            raise ValueError()
+        if wallet.status==False:
+            raise Exception("Wallet not yet enabled!!!")
+        wallet, _ = Wallet.objects.get(
+            owned_by=customer,
+            status=True,
+            enabled_at=timezone.now(),
+            #type= constants.WalletTransactionType,
+            
+        )'''
+
+    
+        
+def get_transactions_by_cust_id(customer_xid):
+    return Transactions.objects.filter(customer_xid=customer_xid)
+        
+    
+
 
