@@ -7,10 +7,11 @@ from .serializers import InitializeWalletSerializer, TransactionSerializer, Wall
 from .services import initialize_user_and_customer, enable_wallet, disable_wallet,add_money,withdraw_money
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+from .tasks import perform_external_call
 
 class InitializeWalletView(APIView):
-    authentication_classes = [] #disables authentication
-    permission_classes = [] #disables permission
+    authentication_classes = [] 
+    permission_classes = [] 
     serializer_class = InitializeWalletSerializer
 
     def post(self, request, *args, **kwargs):
@@ -33,6 +34,7 @@ class WalletStatusChangeView(APIView):
          customer = user.customer
          wallet = enable_wallet(customer)
          serializer = WalletSerializer(wallet)
+         perform_external_call.delay()
          return success_response(serializer.data)
         else:
             return Response({"error":"User is not authenticated"})
@@ -42,6 +44,7 @@ class WalletStatusChangeView(APIView):
         customer = user.customer
         wallet = disable_wallet(customer)
         serializer = WalletSerializer(wallet)
+        perform_external_call.delay()
         return success_response(serializer.data)
 
 
@@ -81,6 +84,7 @@ class AddMoney(APIView):
          data=request.data
          wallet = add_money(customer,data)
          serializer = WalletSerializer(wallet)
+         perform_external_call.delay()
          return success_response(serializer.data)
         else:
             return Response({"error":"User is not authenticated"})
@@ -91,9 +95,9 @@ class Usemoney(APIView):
     serializer_class = VirtualMoneySerializer 
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
-
+    
     def post(self, request):
-
+    
         serializer = self.serializer_class(data=request.data)
         print(request.data)
         serializer.is_valid(raise_exception=True)
@@ -102,6 +106,7 @@ class Usemoney(APIView):
         data=request.data
         wallet = withdraw_money(customer,data)
         serializer = WalletSerializer(wallet)
+        perform_external_call.delay()
         return success_response(serializer.data)
         
 
